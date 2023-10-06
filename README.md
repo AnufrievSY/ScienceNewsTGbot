@@ -5,7 +5,7 @@ Iindividual science news in your telegram
 This project is a scraper of the latest scientific articles from various **official** sources, which is sent to the telegram bot.
 
 # ToDo:
-- [ ] Set up integration with GitHub
+- [X] Set up integration with GitHub
 - [ ] Implement the functionality that allows different users to use the bot
 - [ ] Write a script for the /start command
 - [ ] Add the ability to choose the destinations whose news should be sent and which ones should be ignored
