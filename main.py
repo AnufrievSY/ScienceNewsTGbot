@@ -2,13 +2,13 @@ from background import keep_alive
 from scraper import get_df
 import telebot  
 import time
-from settings import TEST_BOT_TOKEN, CHAT_ID
+from settings import PUBLIC_BOT_TOKEN, ADMIN_CHAT_ID
 keep_alive()
 
-token = TEST_BOT_TOKEN
+token = PUBLIC_BOT_TOKEN
 bot = telebot.TeleBot(token)  
 
-chat_id = CHAT_ID
+chat_id = ADMIN_CHAT_ID
 i = 0
 while True:
   df = get_df()
