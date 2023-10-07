@@ -95,7 +95,12 @@ def last_message(c=None):
         return last_id
 
 
-def get_df():
+def get_df(test=None):
+    """
+    Функция для получения записей, для дальнейшей отправки в ТГ бота.
+
+    Если test = 'test', то отправляет последнюю запись.
+    """
     def func(batch_number, record_number):
         """
         Функция для Thread.
@@ -128,7 +133,7 @@ def get_df():
     id_list = [re.sub(r'\n|\s', '', news_id) for news_id in
                html.fromstring(str(soup)).xpath('//*[contains(@class, "element-5")]/a/text()')]
     # Получаем ID последней отправленной новости из файла last_message.txt
-    lid = last_message()
+    lid = id_list[2] if test else last_message()
     # Выводим ID последней отправленной новости
     print('last message ID: ', lid)
     # Если последний ID есть в списке id_list, то мы прописываем его индекса,
