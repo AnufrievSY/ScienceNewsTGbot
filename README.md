@@ -6,7 +6,7 @@ This project is a scraper of the latest scientific articles from various **offic
 
 # ToDo:
 - [X] Set up integration with GitHub
-- [ ] Come up with a name and create a public bot
+- [X] Come up with a name and create a public bot
 - [ ] Create /start command
 - [ ] Implement the functionality that allows different users to use the bot
 - [ ] Write a script for the /start command
