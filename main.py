@@ -10,6 +10,10 @@ from scraper import get_df
 import threading
 # Для паузы между процессами, чтобы не нагружать систему
 import time
+# Для запуска сервера
+from background import keep_alive
+
+keep_alive()
 
 
 # Создание экземпляра бота
