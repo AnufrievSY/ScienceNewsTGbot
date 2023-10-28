@@ -77,25 +77,7 @@ def get_row(BOX):
     return ROW
 
 
-def last_message(c=None):
-    """
-    Функция, которая возвращает ID последней высланной новости.
-    Если изменено значение по умолчанию, то записывает новый ID.
-    """
-    if c:
-        last_news_id_file = open('last_message.txt', 'w')
-        last_news_id_file.write(c)
-        last_news_id_file.flush()
-        last_news_id_file.close()
-    else:
-        last_news_id_file = open('last_message.txt', 'r')
-        last_id = last_news_id_file.read()
-        last_news_id_file.flush()
-        last_news_id_file.close()
-        return last_id
-
-
-def get_df(test=None):
+def get_df(last_message_id=None):
     """
     Функция для получения записей, для дальнейшей отправки в ТГ бота.
 
@@ -133,7 +115,7 @@ def get_df(test=None):
     id_list = [re.sub(r'\n|\s', '', news_id) for news_id in
                html.fromstring(str(soup)).xpath('//*[contains(@class, "element-5")]/a/text()')]
     # Получаем ID последней отправленной новости из файла last_message.txt
-    lid = id_list[2] if test else last_message()
+    lid = last_message_id if last_message_id else id_list[1]
     # Выводим ID последней отправленной новости
     print('last message ID: ', lid)
     # Если последний ID есть в списке id_list, то мы прописываем его индекса,
@@ -144,11 +126,11 @@ def get_df(test=None):
     #   значит на сайте не было новых записей и мы возвращаем пустой датафрейм.
     if lid == 0:
         print('New posts --- NONE')
-        return pd.DataFrame()
+        return pd.DataFrame(), last_message_id
     else:
         # Выводим количество новых записей.
         print('New messages count: ', lid)
-        # Определяем разделитель - количество паралельных потоков, которые будут запущены.
+        # Определяем разделитель - количество параллельных потоков, которые будут запущены.
         # Был использован именно такой вариант, т.к. через него была реализованна приоритетность
         #   наибольшего количества поток, для ускорения работы.
         delimiter = 4 if lid % 4 == 0 else 3 if lid % 3 == 0 else 2 if lid % 2 == 0 else 1
@@ -167,7 +149,5 @@ def get_df(test=None):
                 th[j].join()
         # Выводим номер последней записи.
         print('\nlast message ID: ', id_list[0])
-        # Добавляем номер последней записи в last_message.txt
-        last_message(id_list[0])
 
-    return pd.DataFrame(list(itertools.chain(*results.values())))
+    return pd.DataFrame(list(itertools.chain(*results.values()))), id_list[0]

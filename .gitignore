@@ -1,9 +1,7 @@
-settings.py
 __pycache__
 .ipynb_checkpoints
-draft.ipynb
-test.txt
 .idea
-user_keys.json
+background.py
 drafts.py
-
+settings.py
+user_keys.json
