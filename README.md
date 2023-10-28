@@ -8,6 +8,7 @@ This project is a scraper of the latest scientific articles from various **offic
 - [X] Set up integration with GitHub
 - [X] Come up with a name and create a public bot
 - [X] Implement the functionality that allows different users to use the bot
-- [ ] Write a script for the /start command
+- [X] Add description
+- [X] Write a /start command
 - [ ] Add the ability to choose the destinations whose news should be sent and which ones should be ignored
 - [ ] Implement a recommendation system to offer the user content based on his preferences
