@@ -13,12 +13,6 @@ import time
 # Для запуска сервера
 from background import keep_alive
 
-keep_alive()
-
-
-# Создание экземпляра бота
-bot = telebot.TeleBot(settings.TEST_BOT_TOKEN)
-
 
 def bot_func():
     # Функция, обрабатывающая команду /start
@@ -40,6 +34,7 @@ def bot_func():
         bot.send_message(chat_id=chat_id, text=message_text, parse_mode="Markdown")
         # Записываем в JSON файл нового пользователя
         get_user_keys.update_users(chat_id, user_name, last_message_id)
+        print(f'Получено сообщение от {user_name} --- {chat_id}')
     # Запускаем бота
     bot.polling(none_stop=True)
 
@@ -59,11 +54,17 @@ def send_news():
                                               '\n' + ', '.join(news.loc[i, 'Авторы']),
                                               news.loc[i, 'Дата публикации']])
                     bot.send_message(chat_id=chat_id, text=message_text, parse_mode="Markdown")
+            get_user_keys.update_last_news(chat_id, last_message_id)
 
         time.sleep(5 * 60.0)
 
 
 if __name__ == "__main__":
+    keep_alive()
+
+    # Создание экземпляра бота
+    bot = telebot.TeleBot(settings.PUBLIC_BOT_TOKEN)
+
     send_news_thread = threading.Thread(target=send_news)
     bot_thread = threading.Thread(target=bot_func)
 
