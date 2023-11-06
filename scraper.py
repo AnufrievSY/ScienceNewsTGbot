@@ -8,7 +8,7 @@ import bs4
 from lxml import html
 # Загружаем бесплатный неограниченный переводчик https://github.com/nidhaloff/deep-translator
 # и импортируем модуль GoogleTranslator из библиотеки deep_translator, т.к. только
-# этот вариант позволяет не задумываться об api_ley и длинне текста
+# этот вариант позволяет не задумываться об api_ley и длине текста
 from deep_translator import GoogleTranslator
 # Для работы с регулярными выражениями
 import re

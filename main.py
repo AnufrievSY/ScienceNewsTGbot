@@ -3,7 +3,7 @@ import telebot
 # Для доступа к настройкам телеграмм бота
 import settings
 # Для работы со словарем пользователей
-import get_user_keys
+import users
 # Для получения последних новостей из источника
 from scraper import get_df
 # Для распараллеливания процессов
@@ -35,14 +35,14 @@ def bot_func():
         # Отправляем сообщение в чат
         bot.send_message(chat_id=chat_id, text=message_text, parse_mode="Markdown")
         # Записываем в JSON файл нового пользователя
-        get_user_keys.update_users(chat_id, user_name, last_message_id)
+        users.add_user(chat_id, user_name, last_message_id)
     # Запускаем бота
     bot.polling(none_stop=True)
 
 
 def send_news():
     while True:
-        for chat_id, last_message_id in get_user_keys.get_users().items():
+        for chat_id, last_message_id in users.get_users_last_news().items():
             print(chat_id, last_message_id)
             news, last_message_id = get_df(last_message_id)
             if news.empty:

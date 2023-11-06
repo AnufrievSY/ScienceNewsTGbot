@@ -4,7 +4,7 @@ import pandas as pd
 
 
 # Функция для добавления нового ключа пользователя
-def update_users(chat_id, user_name, last_message_id):
+def add_user(chat_id, user_name, last_message_id):
     chat_id = str(chat_id)
     # Загрузка существующих данных из файла
     if os.path.isfile('user_keys.json') and os.path.getsize('user_keys.json') > 0:
@@ -23,15 +23,15 @@ def update_users(chat_id, user_name, last_message_id):
             user_name = 'user' + str(int(user_name_list[-1][4:]) + 1)
     elif user_name is None and chat_id in data.keys():
         user_name = data[chat_id]
-    data[chat_id] = {"user_name": user_name, "last_message_id": last_message_id}
+    data[chat_id] = {"user_name": user_name, "last_message_id": last_message_id, "user_topics": None}
 
     # Сохранение обновленных данных в файл
     with open('user_keys.json', 'w') as file:
-        json.dump(data, file)
+        json.dump(data, file, indent=4)
 
 
 # Функция для извлечения ключа пользователя
-def get_users():
+def get_users_last_news():
     # Загрузка данных из файла
     with open('user_keys.json', 'r') as file:
         data = json.load(file)
@@ -40,3 +40,24 @@ def get_users():
     df = pd.DataFrame.from_dict(data, orient='index')
 
     return df.last_message_id.to_dict()
+
+
+def get_user_topic(user_id):
+    # Загрузка данных из файла
+    with open('user_keys.json', 'r') as file:
+        data = json.load(file)
+    return data[str(user_id)]['user_topics']
+
+
+# Функция для записи излюбленных тем пользователя
+def add_user_topic(user_id, topics):
+    # Загрузка данных из файла
+    with open('user_keys.json', 'r') as file:
+        data = json.load(file)
+
+    data[user_id]["user_topics"] = topics
+
+    # Сохранение обновленных данных в файл
+    with open('user_keys.json', 'w') as file:
+        json.dump(data, file, indent=4)
+

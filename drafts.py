@@ -1,57 +1,69 @@
-import requests
-import bs4
-from lxml import html
-from tqdm import tqdm
-import json
 import settings
-
-
-class subject_dict():
-    def update():
-        main_url = 'https://www.preprints.org'
-        req = requests.get(main_url)
-        print(f'status | subject_dict.update | {req.status_code}')
-        soup = bs4.BeautifulSoup(req.text, "html.parser")
-        soup = html.fromstring(str(soup))
-
-        subject_categories = soup.xpath('//*[@id="search_subject_area"]/*/text()')[1:]
-        subject_area = soup.xpath('//*[@id="search_subject_area"]/*/@value')[1:]
-
-        subjects_dict = {}
-        for index, sa in tqdm(enumerate(subject_area), total=len(subject_categories)):
-            subject_area_ural = f'https://www.preprints.org/search?search_subject_area={sa}'
-            req = requests.get(subject_area_ural)
-            if req.status_code != 200:
-                print(f'status | subject_dict.update | error with get soup (search_subject_area={sa}/{subject_categories[index]})')
-            soup = bs4.BeautifulSoup(req.text, "html.parser")
-            soup = html.fromstring(str(soup))
-            soup = soup.xpath('//*[@id="search_subject_sub_area"]/*/text()')[1:]
-            subjects_dict[subject_categories[index]] = soup
-        print('status | subject_dict.update | successfully')
-
-        with open('subjects.json', 'w') as file:
-            json.dump(subjects_dict, file)
-
-    def get():
-        with open('subjects.json', 'r') as file:
-            subjects_dict = json.load(file)
-        return subjects_dict
-
-
+import subjects
+import users
+import re
 import telebot
 from telebot import types
 
 bot = telebot.TeleBot(settings.TEST_BOT_TOKEN)
+user_topics = list()
+all_topic = dict()
+all_topic_ru = dict()
+
+
+def back_to_main_subjects(call):
+    global all_topic
+    global all_topic_ru
+    markup = types.InlineKeyboardMarkup()
+    for mt_id, main_topic in enumerate(list(all_topic.keys())):
+        markup.add(types.InlineKeyboardButton(all_topic_ru[mt_id], callback_data=f'main;{main_topic}'))
+    markup.add(types.InlineKeyboardButton('готово', callback_data=f'end;'))
+    bot.edit_message_text(chat_id=call.from_user.id,
+                          message_id=call.message.id,
+                          text='Выбери тему:',
+                          parse_mode='html',
+                          reply_markup=markup)
+
+
+def print_sub_subject(call, subject):
+    global all_topic
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('Выбрать все', callback_data=f'all;{subject}'))
+    sub_topic_ru = all_topic_ru[list(all_topic_ru.keys())[list(all_topic.keys()).index(subject)]]
+    for st_id, sub_topic in enumerate(all_topic[subject]):
+        markup.add(types.InlineKeyboardButton(sub_topic_ru[st_id], callback_data=f'sub;{subject};{sub_topic}'))
+    back_button = types.InlineKeyboardButton('назад', callback_data=f'back;')
+    end_button = types.InlineKeyboardButton('готово', callback_data=f'end;')
+    markup.row(back_button, end_button)
+
+    bot.edit_message_text(chat_id=call.from_user.id,
+                          message_id=call.message.id,
+                          text='Что именно тебе интересно?',
+                          parse_mode='html',
+                          reply_markup=markup)
 
 
 @bot.message_handler(commands=['topics'])
 def main_topics(message):
+    global all_topic
     global user_topics
-    user_topics = list()
+    global all_topic_ru
+
+    user_topics = users.get_user_topic(message.from_user.id)
+    all_topic = subjects.get()
+    all_topic_ru = all_topic['translate']
+    for topic_id, (k, v) in enumerate(all_topic['original'].items()):
+        for t in v:
+            if t in user_topics:
+                # Ты остановился тут
+
+    all_topic = {k: ['✅ ' + t if t in user_topics else t for t in v] }
+
 
     markup = types.InlineKeyboardMarkup()
-    for main_topic in list(subject_dict.get().keys()):
+    for main_topic in list(all_topic.keys()):
         markup.add(types.InlineKeyboardButton(main_topic, callback_data=f'main;{main_topic}'))
+    markup.add(types.InlineKeyboardButton('готово', callback_data=f'end;'))
     bot.send_message(message.chat.id,
                      'Выбери тему:',
                      parse_mode='html',
@@ -60,37 +72,31 @@ def main_topics(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback(call):
+    global user_topics
+    global all_topic
     call_back = call.data.split(';')
     if call_back[0] == 'main':
-        markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton('Выбрать все', callback_data=f'sub;all'))
-        for sub_topic in subject_dict.get()[call_back[1]]:
-            markup.add(types.InlineKeyboardButton(sub_topic, callback_data=f'sub;{sub_topic}'))
-        back_button = types.InlineKeyboardButton('назад', callback_data=f'back;')
-        end_button = types.InlineKeyboardButton('готово', callback_data=f'end;')
-        markup.row(back_button, end_button)
+        print_sub_subject(call, call_back[1])
 
-        bot.edit_message_text(chat_id=call.from_user.id,
-                              message_id=call.message.id,
-                              text='Что именно тебе интересно?',
-                              parse_mode='html',
-                              reply_markup=markup)
     elif call_back[0] == 'sub':
-        user_topics.append(call_back[1])
+        if call_back[2][2:] in user_topics:
+            user_topics.remove(call_back[2][2:])
+            all_topic = eval(re.sub(call_back[2], call_back[2][2:], str(all_topic)))
+
+        else:
+            user_topics.append(call_back[2])
+            all_topic = eval(re.sub(call_back[2], '✅ ' + call_back[2], str(all_topic)))
+
+        print_sub_subject(call, call_back[1])
 
     elif call_back[0] == 'all':
-        # сделать так, чтобы в список топиков записывались все имеющиеся
-        pass
+        user_topics += all_topic[call_back[1]]
+        for sub_topic in all_topic[call_back[1]]:
+            all_topic = eval(re.sub(sub_topic, '✅ ' + sub_topic, str(all_topic)))
+        print_sub_subject(call, call_back[1])
 
     elif call_back[0] == 'back':
-        markup = types.InlineKeyboardMarkup()
-        for main_topic in list(subject_dict.get().keys()):
-            markup.add(types.InlineKeyboardButton(main_topic, callback_data=f'main;{main_topic}'))
-        bot.edit_message_text(chat_id=call.from_user.id,
-                              message_id=call.message.id,
-                              text='Выбери тему:',
-                              parse_mode='html',
-                              reply_markup=markup)
+        back_to_main_subjects(call)
 
     elif call_back[0] == 'end':
         bot.delete_message(chat_id=call.from_user.id, message_id=call.message.id)
@@ -98,8 +104,7 @@ def callback(call):
                          text=f"Вы выбрали: {', '.join(user_topics)}",
                          parse_mode='html')
 
-
-
+        users.add_user_topic(str(call.from_user.id), user_topics)
 
 
 bot.polling(none_stop=True)
