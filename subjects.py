@@ -44,5 +44,3 @@ def get():
     with open('subjects.json', 'r') as file:
         subjects_dict = json.load(file)
     return subjects_dict
-
-update()
