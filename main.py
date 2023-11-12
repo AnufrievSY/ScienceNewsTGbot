@@ -5,7 +5,7 @@ import settings
 # Для работы со словарем пользователей
 import users
 # Для получения последних новостей из источника
-from scraper import get_df
+from parser import get_df
 # Для распараллеливания процессов
 import threading
 # Для паузы между процессами, чтобы не нагружать систему
