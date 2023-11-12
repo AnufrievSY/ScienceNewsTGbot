@@ -114,8 +114,14 @@ def get_df(last_message_id=None):
     # Получаем список из ID новостей, отчистив их от лишних пробелов и новых строк
     id_list = [re.sub(r'\n|\s', '', news_id) for news_id in
                html.fromstring(str(soup)).xpath('//*[contains(@class, "element-5")]/a/text()')]
-    # Получаем ID последней отправленной новости из файла last_message.txt
-    lid = last_message_id if last_message_id else id_list[1]
+    # Получаем ID последней отправленной новости
+    if last_message_id and type(last_message_id)==str():
+        lid = last_message_id
+    if last_message_id and type(last_message_id)==int():
+        lid = id_list[last_message_id]
+    else:
+        lid = id_list[1]
+
     # Выводим ID последней отправленной новости
     print('last message ID: ', lid)
     # Если последний ID есть в списке id_list, то мы прописываем его индекса,

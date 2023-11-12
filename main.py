@@ -28,10 +28,11 @@ def bot_func():
         last_news = last_news.iloc[0].to_dict()
         # Формируем сообщение
         message_text = '\n'.join([f"[{last_news['Название'].upper()}]({last_news['Ссылка']})",
-                                  f"\n{' | '.join(last_news['Ключевые слова'] + last_news['Науки']).lower()}\n",
-                                  last_news['Краткое описание'],
-                                  '\n' + ', '.join(last_news['Авторы']),
+        #                          f"\n{' | '.join(last_news['Ключевые слова'] + last_news['Науки']).lower()}\n",
+        #                          last_news['Краткое описание'],
+        #                          '\n' + ', '.join(last_news['Авторы']),
                                   last_news['Дата публикации']])
+
         # Отправляем сообщение в чат
         bot.send_message(chat_id=chat_id, text=message_text, parse_mode="Markdown")
         # Записываем в JSON файл нового пользователя
@@ -41,22 +42,28 @@ def bot_func():
 
 
 def send_news():
+    mt = 0
     while True:
         for chat_id, last_message_id in users.get_users_last_news().items():
             print(chat_id, last_message_id)
-            news, last_message_id = get_df(last_message_id)
+            news, last_message_id = get_df(2)
+            bot.send_message(chat_id=chat_id, text=len(news))
             if news.empty:
                 pass
             else:
                 for i in news.index:
-                    message_text = '\n'.join([f"[{news.loc[i, 'Название'].upper()}]({news.loc[i, 'Ссылка']})",
-                                              f"\n{' | '.join(news.loc[i, 'Ключевые слова'] + news.loc[i, 'Науки']).lower()}\n",
-                                              news.loc[i, 'Краткое описание'],
-                                              '\n' + ', '.join(news.loc[i, 'Авторы']),
-                                              news.loc[i, 'Дата публикации']])
-                    bot.send_message(chat_id=chat_id, text=message_text, parse_mode="Markdown")
+                    #message_text = '\n'.join([f"[{news.loc[i, 'Название'].upper()}]({news.loc[i, 'Ссылка']})",
+                    #                          f"\n{' | '.join(news.loc[i, 'Ключевые слова'] + news.loc[i, 'Науки']).lower()}\n",
+                    #                          news.loc[i, 'Краткое описание'],
+                    #                          '\n' + ', '.join(news.loc[i, 'Авторы']),
+                    #                          news.loc[i, 'Дата публикации']])
 
-        time.sleep(5 * 60.0)
+                    message_text = 'Send'+str(mt)
+                    bot.send_message(chat_id=chat_id, text=message_text, parse_mode="Markdown")
+                    mt+=1
+
+        # time.sleep(5 * 60.0)
+        time.sleep(10)
 
 
 if __name__ == "__main__":
