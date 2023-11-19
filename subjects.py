@@ -40,7 +40,16 @@ def update():
         json.dump(data, file, indent=4)
 
 
-def get():
+def get(user_topics=None):
     with open('subjects.json', 'r') as file:
         subjects_dict = json.load(file)
+
+    if user_topics:
+        for index_1, key in enumerate(list(subjects_dict['original'].keys())):
+            for index_2, value in enumerate(subjects_dict['original'][key]):
+                if value in user_topics:
+                    subjects_dict['translate'][list(subjects_dict['translate'].keys())[index_1]][index_2] = '✅ ' + subjects_dict[
+                        'translate'][list(subjects_dict['translate'].keys())[index_1]][index_2]
+    else:
+        pass
     return subjects_dict
