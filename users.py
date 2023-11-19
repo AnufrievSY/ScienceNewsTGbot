@@ -38,8 +38,28 @@ def get_users_last_news():
 
     # Получение ключей пользователя и их последних новостей
     df = pd.DataFrame.from_dict(data, orient='index')
+    if len(df) == 0:
+        return None
+    else:
+        return df.last_message_id.to_dict()
 
-    return df.last_message_id.to_dict()
+
+def delete_user(chat_id):
+    with open('user_keys.json', 'r') as file:
+        data = json.load(file)
+    user = data[str(chat_id)]
+    del data[str(chat_id)]
+    with open('user_keys.json', 'w') as file:
+        json.dump(data, file, indent=4)
+    return user
+
+
+def user_update_last_news(chat_id, last_message_id):
+    with open('user_keys.json', 'r') as file:
+        data = json.load(file)
+    data[str(chat_id)]["last_message_id"] = last_message_id
+    with open('user_keys.json', 'w') as file:
+        json.dump(data, file, indent=4)
 
 
 def get_user_topic(user_id):

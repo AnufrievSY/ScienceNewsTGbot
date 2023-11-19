@@ -20,7 +20,7 @@ import pandas as pd
 from tqdm import tqdm
 
 
-def get_row(BOX):
+def get_row(BOX, topics=None):
     """
     Функция, которая достает сведения из переданного ей элемента.
 
@@ -48,6 +48,10 @@ def get_row(BOX):
     subject_list = h.xpath('//*[@href="/search"]/text()')
     subject_list = [i for i in h.xpath('//a[contains(@href, "subject")]/text()') if
                     i != '\n'] if subject_list == [] else subject_list
+    if len(topics) == 0:
+        send = True
+    else:
+        send = True in [t in subject_list for t in topics]
     # Получаем список ключевых слов связанных с данной статьей
     keyword_list = h.xpath('//a[contains(@href, "keywords")]/text()')
     # Получение краткого описания статьи и заодно отчищаем от лишних пробелов и новых строк
@@ -74,10 +78,10 @@ def get_row(BOX):
     ROW['Дата публикации'] = re.search(r'\d{1,2} [A-Za-z]+ \d{4}',
                                        h.xpath('//*[@class="show-for-large-up"]/*/text()')[0]).group()
 
-    return ROW
+    return ROW, send
 
 
-def get_df(last_message_id=None):
+def get_df(last_message_id=None, topics=None):
     """
     Функция для получения записей, для дальнейшей отправки в ТГ бота.
 
@@ -94,8 +98,9 @@ def get_df(last_message_id=None):
         record_number (int): номер записи в потоке, суммируется с batch_number для получения записи.
         """
         try:
-            row = get_row(boxes[batch_number + record_number])
-            results[batch_number].append(row)
+            row, send = get_row(boxes[batch_number + record_number], topics)
+            if send:
+                results[batch_number].append(row)
         except Exception as error:
             print(f'{batch_number + record_number}: {error}')
 
@@ -154,6 +159,6 @@ def get_df(last_message_id=None):
                 th[j].start()
                 th[j].join()
         # Выводим номер последней записи.
-        print('\nlast message ID: ', id_list[0])
+        print('last message ID: ', id_list[0])
 
     return pd.DataFrame(list(itertools.chain(*results.values()))), id_list[0]
