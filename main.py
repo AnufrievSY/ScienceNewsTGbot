@@ -1,4 +1,5 @@
 # Для работы с телеграмм ботом
+import pandas as pd
 import telebot
 # Для доступа к настройкам телеграмм бота
 import settings
@@ -65,15 +66,13 @@ def bot_func():
         # Определяем переменную для создания кнопок
         markup = types.InlineKeyboardMarkup()
         # Получаем список тем, определенной категории наук на основании переданного subject_id
-        subject_name = list(all_topic["original"].keys())[subject_id]
-        # Создаем кнопку для возможности выбора сразу всех вариантов
-        markup.add(types.InlineKeyboardButton('Выбрать все', callback_data=f'all;{subject_id}'))
+        subject_df = all_topic.loc[all_topic.type == 'sub'].loc[all_topic.main_id == subject_id]
         # Создаем свою кнопку для каждой науки
-        for st_id, sub_topic in enumerate(all_topic['original'][subject_name]):
+        for _, (st_id, sub_topic) in subject_df[['sub_id', 'translate']].iterrows():
             markup.add(
                 types.InlineKeyboardButton(
                     # В качестве текста для кнопки берем заранее переведенные их значения
-                    all_topic['translate'][list(all_topic['translate'].keys())[subject_id]][st_id],
+                    sub_topic,
                     # В качестве обратной связи от кнопки определяем:
                     # sub - условное обозначение, что это именно ПОД-тема в классе наук
                     # subject_id - номер, к которому относится класс науки
@@ -101,7 +100,6 @@ def bot_func():
         он хотел бы получать.
         """
         global all_topic, user_topics, bot_message_id, chat_id, user_data
-
         if message:
             # Прежде чем начать работать, удалим пользователя из словаря пользователей
             # чтобы рассылка не мешала работе
@@ -112,7 +110,7 @@ def bot_func():
             user_data = users.delete_user(chat_id)
 
         markup = types.InlineKeyboardMarkup()
-        for topic_id, main_topic in enumerate(list(all_topic['translate'].keys())):
+        for _, (topic_id, main_topic) in all_topic.loc[all_topic.type == 'main', ['main_id', 'translate']].iterrows():
             markup.add(types.InlineKeyboardButton(main_topic, callback_data=f'main;{topic_id}'))
         markup.add(types.InlineKeyboardButton('готово', callback_data=f'end;'))
 
@@ -148,32 +146,26 @@ def bot_func():
             print_sub_subject(call, int(call_back[1]))
 
         elif call_back[0] == 'sub':
-            main_name_original = list(all_topic['original'].keys())[int(call_back[1])]
-            main_name_translate = list(all_topic['translate'].keys())[int(call_back[1])]
-            sub_name_original = all_topic['original'][main_name_original][int(call_back[2])]
-            sub_name_translate = all_topic['translate'][main_name_translate][int(call_back[2])]
-
-            if sub_name_original in user_topics:
-                user_topics.remove(sub_name_original)
-                all_topic['translate'][main_name_translate][int(call_back[2])] = sub_name_translate[2:]
-
+            topic_id = f'{call_back[1]}.{call_back[2]}'
+            if topic_id in user_topics:
+                user_topics.remove(topic_id)
+                all_topic.loc[
+                    (all_topic.main_id == int(call_back[1])) &
+                    (all_topic.sub_id == int(call_back[2])),
+                    'translate'] = all_topic.loc[
+                        (all_topic.main_id == int(call_back[1])) &
+                        (all_topic.sub_id == int(call_back[2])),
+                        'translate'].values[0][1:]
             else:
-                user_topics.append(sub_name_original)
-                all_topic['translate'][main_name_translate][int(call_back[2])] = '✅ ' + sub_name_translate
-
+                user_topics.append(topic_id)
+                all_topic.loc[
+                    (all_topic.main_id == int(call_back[1])) &
+                    (all_topic.sub_id == int(call_back[2])),
+                    'translate'] = '✅' + all_topic.loc[
+                        (all_topic.main_id == int(call_back[1])) &
+                        (all_topic.sub_id == int(call_back[2])),
+                        'translate']
             print_sub_subject(call, int(call_back[1]))
-
-        elif call_back[0] == 'all':
-            main_name_original = list(all_topic['original'].keys())[int(call_back[1])]
-            main_name_translate = list(all_topic['translate'].keys())[int(call_back[1])]
-
-            for sub_topic_id, sub_topic_translate in enumerate(all_topic['translate'][main_name_translate]):
-                if all_topic['original'][main_name_original][sub_topic_id] not in user_topics:
-                    user_topics.append(all_topic['original'][main_name_original][sub_topic_id])
-                    all_topic['translate'][main_name_translate][sub_topic_id] = '✅ ' + sub_topic_translate
-
-            print_sub_subject(call, int(call_back[1]))
-
         elif call_back[0] == 'back':
             main_topics()
 
@@ -225,8 +217,9 @@ def send_news():
 
 
 if __name__ == "__main__":
-    send_news_thread = threading.Thread(target=send_news)
-    bot_thread = threading.Thread(target=bot_func)
-
-    send_news_thread.start()
-    bot_thread.start()
+    # send_news_thread = threading.Thread(target=send_news)
+    # bot_thread = threading.Thread(target=bot_func)
+    #
+    # # send_news_thread.start()
+    # bot_thread.start()
+    bot_func()

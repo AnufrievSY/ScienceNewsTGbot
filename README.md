@@ -16,8 +16,8 @@ This project is a scraper of the latest scientific articles from various **offic
     - [X] Implement the recording of the received information in the user attributes
     - [X] Configure the ability to change your preferences
     - [X] Translate everything
-    - [X] Clean up the resulting code
-    - [X] Embed the resulting code in main
+    - [ ] Clean up the resulting code
+    - [ ] Embed the resulting code in main
     - [ ] Testing script on draft server
 - [ ] Add feedback function
 - [ ] Add the function of sending messages to all users

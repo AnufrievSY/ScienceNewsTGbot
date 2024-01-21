@@ -43,15 +43,30 @@ def get_row(BOX, topics=None):
 
     # Достаем название статьи
     name = re.sub(r'^\s|\s{2}|\n', ' ', ''.join(h.xpath('//*[@id="title"]/text()')))
-    # Получаем список тем в рамках которых написана статья. При этом добавляем
-    # еще строчку, которая отрабатывается если не были найдены темы.
+    # Получаем список тем в рамках которых написана статья.
     subject_list = h.xpath('//*[@href="/search"]/text()')
+    # Получаем номер тематики на которую написан статься
+    topic_number = []
+    if not subject_list:
+        topic_number = h.xpath('//a[contains(@href, "subject")]/@href')
+        topic_number = [sa[1:] for sa in topic_number if 'search_subject_area' in sa]
+        topic_number = '&'.join(topic_number).split('&')
+        topic_number = [int(sa[re.search('=', sa).span()[1]:]) for sa in topic_number]
+    # Отрабатывает если не были найдены темы в первый раз.
     subject_list = [i for i in h.xpath('//a[contains(@href, "subject")]/text()') if
                     i != '\n'] if subject_list == [] else subject_list
-    if len(topics) == 0:
+    # Определяем нужна ли дальнейшая обработка и отсылка новости.
+    # Если в функцию не передан список предпочтительных тем пользователя,
+    # то отсылается все подряд.
+    # Если же были переданы темы пользователя, то по номеру сверяется с темами на
+    # которые написана статься, к дальнейшей обработке допускаются только статьи,
+    # написанные на любимые темы пользователя.
+    if not topics or len(topics) == 0:
         send = True
     else:
-        send = True in [t in subject_list for t in topics]
+        send = True in [t in topics for t in topic_number] \
+            if len(topic_number) != 0 \
+            else False
     # Получаем список ключевых слов связанных с данной статьей
     keyword_list = h.xpath('//a[contains(@href, "keywords")]/text()')
     # Получение краткого описания статьи и заодно отчищаем от лишних пробелов и новых строк
@@ -84,8 +99,6 @@ def get_row(BOX, topics=None):
 def get_df(last_message_id=None, topics=None):
     """
     Функция для получения записей, для дальнейшей отправки в ТГ бота.
-
-    Если test = 'test', то отправляет последнюю запись.
     """
     def func(batch_number, record_number):
         """
@@ -120,12 +133,12 @@ def get_df(last_message_id=None, topics=None):
     id_list = [re.sub(r'\n|\s', '', news_id) for news_id in
                html.fromstring(str(soup)).xpath('//*[contains(@class, "element-5")]/a/text()')]
     # Получаем ID последней отправленной новости
-    if last_message_id and type(last_message_id)==str():
+    if last_message_id and isinstance(last_message_id, str):
         lid = last_message_id
-    if last_message_id and type(last_message_id)==int():
+    elif last_message_id and isinstance(last_message_id, int):
         lid = id_list[last_message_id]
     else:
-        lid = id_list[1]
+        lid = id_list[0]
 
     # Выводим ID последней отправленной новости
     print('last message ID: ', lid)
