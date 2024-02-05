@@ -48,7 +48,62 @@ def BotFunc():
         # Записываем в JSON файл нового пользователя
         users.add_user(chat_id, user_name, last_message_id)
 
-    def print_sub_subject(call, subject_id):
+    @bot.message_handler(commands=['topics'])
+    def main_topics(message=None):
+        """
+        Функция для обработки команды /topics
+
+        По итогу будет произведена запись или изменение любимых тем пользователя, которые
+        он хотел бы получать.
+        """
+        global all_topic, user_topics, bot_message_id, chat_id, user_data
+        # Прежде чем начать работать, удалим пользователя из словаря пользователей
+        # чтобы рассылка не мешала работе
+        if message:
+            # Получаем ID обратившего пользователя    
+            chat_id = message.from_user.id
+            # Получаем темы пользователя
+            user_topics = users.get_user_topic(chat_id)
+            # Если ранее пользователь не добавлял любымх тем, то переменная будет пуста.
+            # В таком случаев создаем пустой список.
+            user_topics = user_topics if user_topics else []
+            # Для корректного отображения в самом телеграмме тем, которые ранее выбирал
+            # пользователь, передаем их в функцию, возвращающую все возможные темы. 
+            # При этом темы выбранные пользователем отмечаются у него галочкой.
+            all_topic = subjects.get(user_topics)
+            # Удаляем пользователя из списка пользователей, чтобы ему не отправлялись
+            # новости пока он работает над добавлением новых интерисующих его тематик.
+            user_data = users.delete_user(chat_id)
+        # Создаем переменную в которую будем записывать кнопки.
+        markup = types.InlineKeyboardMarkup()
+        # Запускаем цикл создания кнопок путем изъятия из датафрейма названий классов тематик.
+        # Получаем уникальный ID этого класса и заранее переведенное его наименование.
+        for _, (topic_id, main_topic) in all_topic.loc[all_topic.type == 'main', ['main_id', 'translate']].iterrows():
+            # В качестве обратной связи отмечает, что это класс тематик, а не сама тема (main)
+            # и уникальный ключ класса темы, для дальнейшего получения только тем этого класса.
+            markup.add(types.InlineKeyboardButton(main_topic, callback_data=f'main;{topic_id}'))
+        # Добавляем кнопку завершения работы с выбранным классом тематик
+        markup.add(types.InlineKeyboardButton('готово', callback_data=f'end;'))
+        # Если в функция было переданно сообщение, то с нуля формируется сообщения с темами.
+        if message:
+            # Отправляем сообщение в бот
+            bot.send_message(chat_id,
+                             'Выбери тему:',
+                             parse_mode='html',
+                             reply_markup=markup)
+            # Записываем уникальный ключ этого сообщения для дальнешей работы с ним
+            bot_message_id = message.message_id + 1
+        # Если сообщение не было переданно, значит пользователь в данный момент работает над
+        # добавлением интерисующих его тем и последнее отправленное сообщение необходимо изменить.
+        else:
+            # Изменяем сообщение в боте
+            bot.edit_message_text(chat_id=chat_id,
+                                  message_id=bot_message_id,
+                                  text='Выбери тему:',
+                                  parse_mode='html',
+                                  reply_markup=markup)
+            
+    def print_sub_subject(call:telebot.types.CallbackQuery, subject_id:int):
         """
         Функция, которая организует работу с вторичными предметами той или иной науки.
         По итогу в чате с ботом, последнее отправленное ботом сообщение будет изменено
@@ -89,47 +144,10 @@ def BotFunc():
                               parse_mode='html',
                               reply_markup=markup)
 
-    @bot.message_handler(commands=['topics'])
-    def main_topics(message=None):
-        """
-        Функция для обработки команды /topics
-
-        По итогу будет произведена запись или изменение любимых тем пользователя, которые
-        он хотел бы получать.
-        """
-        global all_topic, user_topics, bot_message_id, chat_id, user_data
-        if message:
-            # Прежде чем начать работать, удалим пользователя из словаря пользователей
-            # чтобы рассылка не мешала работе
-            chat_id = message.from_user.id
-            user_topics = users.get_user_topic(chat_id)
-            user_topics = user_topics if user_topics else []
-            all_topic = subjects.get(user_topics)
-            user_data = users.delete_user(chat_id)
-
-        markup = types.InlineKeyboardMarkup()
-        for _, (topic_id, main_topic) in all_topic.loc[all_topic.type == 'main', ['main_id', 'translate']].iterrows():
-            markup.add(types.InlineKeyboardButton(main_topic, callback_data=f'main;{topic_id}'))
-        markup.add(types.InlineKeyboardButton('готово', callback_data=f'end;'))
-
-        if message:
-            bot.send_message(chat_id,
-                             'Выбери тему:',
-                             parse_mode='html',
-                             reply_markup=markup)
-            bot_message_id = message.message_id + 1
-
-        else:
-            bot.edit_message_text(chat_id=chat_id,
-                                  message_id=bot_message_id,
-                                  text='Выбери тему:',
-                                  parse_mode='html',
-                                  reply_markup=markup)
-
     @bot.callback_query_handler(func=lambda call: True)
     def callback(call):
         """
-        Функция обратной связи для созданных кнопок
+        Функция обратной связи для созданных кнопок. Срабатывает при нажатии на любую кнопку в боте.
         main - возвращает под-темы имеющиеся в переданном классе наук
         sub - производит добавление или удаление выбранной под-темы из
             списка любых тем пользователя
@@ -139,14 +157,26 @@ def BotFunc():
             обо всех пользователях
         """
         global user_topics, all_topic, user_data
+        # Зная как нами создавалась обратная связь от кнопок разбиваем их.
         call_back = call.data.split(';')
+        # Если первая часть записи обратной связи - main то запускаем скрипт отправки тематик
+        # выбранного пользователей класса (вторая часть обратной связи кнопки)
         if call_back[0] == 'main':
             print_sub_subject(call, int(call_back[1]))
 
         elif call_back[0] == 'sub':
+            # Если первая часть обратной связи - sub, то запускаем скрипт обратки отмеченной
+            # пользователем интерисующей его темы. Формируем уникальный ключ выбранной темы.
+            # call_back[1] - уникальный ключ основного класса
+            # call_back[2] - уникальный ключ отдельной тематики в этом классе
             topic_id = f'{call_back[1]}.{call_back[2]}'
+            # Если данная тема уже присутсвуем в любых темах пользователя, значит он хочет
+            # от нее отписаться и мы приступаем к удалению ее из списка любимых тем пользователя.
+            # Если же ее нет, то производим запись темы в список избранных.
             if topic_id in user_topics:
+                # Удалем указанную тему из списка избранных пользователем используя уникальный ключ.
                 user_topics.remove(topic_id)
+                # Стираем из записи названия, которая отправляет в чат галочку перед названием темы
                 all_topic.loc[
                     (all_topic.main_id == int(call_back[1])) &
                     (all_topic.sub_id == int(call_back[2])),
@@ -155,7 +185,9 @@ def BotFunc():
                         (all_topic.sub_id == int(call_back[2])),
                         'translate'].values[0][1:]
             else:
+                # Добавляем тему в список избранных
                 user_topics.append(topic_id)
+                # Добавляем галочку перед названием темы.
                 all_topic.loc[
                     (all_topic.main_id == int(call_back[1])) &
                     (all_topic.sub_id == int(call_back[2])),
@@ -163,10 +195,15 @@ def BotFunc():
                         (all_topic.main_id == int(call_back[1])) &
                         (all_topic.sub_id == int(call_back[2])),
                         'translate']
+            # Запускаем скрипт по отправке списка тем класса тематик - call_back[1] после
+            # произведенных изменений.
             print_sub_subject(call, int(call_back[1]))
+        # Если выбранна кнопка "назад", то орабатывает скрипт по выдаче пользователю 
+        # классов тематик. 
         elif call_back[0] == 'back':
             main_topics()
-
+        # Если нажато "готово", то отрабатывает скрипт завершения добавления/изменения
+        # любимых тематик.
         elif call_back[0] == 'end':
             bot.delete_message(chat_id=call.from_user.id, message_id=call.message.id)
             bot.send_message(chat_id=call.from_user.id,
@@ -187,7 +224,6 @@ def send_news():
         if data:
             for chat_id, last_message_id in data.items():
                 topics = users.get_user_topic(chat_id)
-                print(chat_id, last_message_id)
                 news, last_message_id = get_df(2, topics)
 
                 if news.empty:
@@ -221,4 +257,5 @@ if __name__ == "__main__":
     #
     # # send_news_thread.start()
     # bot_thread.start()
-    BotFunc()
+    # BotFunc()
+    send_news()

@@ -44,17 +44,25 @@ def get_row(BOX, topics=None):
     # Достаем название статьи
     name = re.sub(r'^\s|\s{2}|\n', ' ', ''.join(h.xpath('//*[@id="title"]/text()')))
     # Получаем список тем в рамках которых написана статья.
-    subject_list = h.xpath('//*[@href="/search"]/text()')
+    #subject_list = h.xpath('//*[@href="/search"]/text()')
+    #print(subject_list)
     # Получаем номер тематики на которую написан статься
-    topic_number = []
-    if not subject_list:
-        topic_number = h.xpath('//a[contains(@href, "subject")]/@href')
-        topic_number = [sa[1:] for sa in topic_number if 'search_subject_area' in sa]
-        topic_number = '&'.join(topic_number).split('&')
-        topic_number = [int(sa[re.search('=', sa).span()[1]:]) for sa in topic_number]
+    #topic_number = []
+    #if not subject_list:
+    print(1, topics)
+    topic_number = h.xpath('//a/@href')
+    #<a href="/search?search_subject_area=71">Computer Science And Mathematics</a>
+    print(2, topic_number)
+    #topic_number = [sa[1:] for sa in topic_number if 'search_subject_area' in sa]
+    #print(topic_number)
+    topic_number = '&'.join(topic_number).split('&')
+    print(3, topic_number)
+    topic_number = [int(sa[re.search('=', sa).span()[1]:]) for sa in topic_number]
+    print(4, topic_number)
     # Отрабатывает если не были найдены темы в первый раз.
     subject_list = [i for i in h.xpath('//a[contains(@href, "subject")]/text()') if
                     i != '\n'] if subject_list == [] else subject_list
+    print(5, subject_list)
     # Определяем нужна ли дальнейшая обработка и отсылка новости.
     # Если в функцию не передан список предпочтительных тем пользователя,
     # то отсылается все подряд.
