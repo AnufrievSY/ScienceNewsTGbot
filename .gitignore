@@ -4,3 +4,4 @@ __pycache__
 background.py
 settings.py
 user_keys.json
+drafts.py
