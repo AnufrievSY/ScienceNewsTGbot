@@ -1,38 +1,36 @@
-# Для работы с телеграмм ботом
-import pandas as pd
-import telebot
 # Для доступа к настройкам телеграмм бота
 import settings
+# Для работы с телеграмм ботом
+import telebot
+# Для работы с кнопками бота
+from telebot import types
 # Для работы со словарем пользователей
 import users
 # Для получения последних новостей из источника
-from parser import get_df
+import pandas as pd
+from myparser import get_df
 # Для распараллеливания процессов
 import threading
 # Для паузы между процессами, чтобы не нагружать систему
 import time
 # Для работы с науками к которым относится новость
 import subjects
-# Для работы с кнопками бота
-from telebot import types
 
-
-bot = telebot.TeleBot(settings.TEST_BOT_TOKEN)
 user_topics = list()
 all_topic = dict()
 bot_message_id = int()
 chat_id = int()
 user_data = dict()
+bot = telebot.TeleBot(settings.TEST_BOT_TOKEN)
 
-
-def bot_func():
+def BotFunc():
     # Функция, обрабатывающая команду /start
     @bot.message_handler(commands=["start"])
     def start(message):
         # Получаем номер чата и имя обратившегося пользователя
         chat_id, user_name = message.chat.id, message.from_user.username
         # Получаем последнюю новость и ее идентификатор
-        last_news, last_message_id = get_df()
+        last_news, last_message_id = get_df(last_message_id=1)
         # Превращаем в словарь для удобного использования
         last_news = last_news.iloc[0].to_dict()
         # Формируем сообщение
@@ -178,7 +176,7 @@ def bot_func():
                            user_data['user_name'],
                            user_data['last_message_id'])
             users.add_user_topic(str(call.from_user.id), user_topics)
-
+    
     # Запускаем бота
     bot.polling(none_stop=True)
 
@@ -216,10 +214,11 @@ def send_news():
         time.sleep(10)
 
 
+
 if __name__ == "__main__":
     # send_news_thread = threading.Thread(target=send_news)
     # bot_thread = threading.Thread(target=bot_func)
     #
     # # send_news_thread.start()
     # bot_thread.start()
-    bot_func()
+    BotFunc()

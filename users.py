@@ -6,6 +6,7 @@ import pandas as pd
 # Функция для добавления нового ключа пользователя
 def add_user(chat_id, user_name, last_message_id):
     chat_id = str(chat_id)
+    print(chat_id, user_name, last_message_id)
     # Загрузка существующих данных из файла
     if os.path.isfile('user_keys.json') and os.path.getsize('user_keys.json') > 0:
         with open('user_keys.json', 'r') as file:

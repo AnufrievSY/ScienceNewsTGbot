@@ -1,0 +1,9 @@
+telebot==0.0.5
+thread==0.1.3
+requests==2.31.0
+bs4==0.0.2
+lxml==5.1.0
+deep_translator==1.11.4
+pandas==2.1.4
+tqdm==4.66.1
+flask==3.0.2
