@@ -21,4 +21,4 @@ This project is a scraper of the latest scientific articles from various **offic
     - [ ] Testing script on draft server
 - [ ] Add feedback function
 - [ ] Add the function of sending messages to all users
-- [ ] Implement a recommendation system to offer the user content based on his preferences
+- [ ] Implement a recommendation system to offer the user content based on his preferences.

@@ -251,11 +251,11 @@ def send_news():
 
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # send_news_thread = threading.Thread(target=send_news)
     # bot_thread = threading.Thread(target=bot_func)
     #
     # # send_news_thread.start()
     # bot_thread.start()
     # BotFunc()
-    send_news()
+send_news()

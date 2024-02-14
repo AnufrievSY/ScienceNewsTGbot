@@ -18,6 +18,8 @@ import itertools
 import pandas as pd
 # Для отображения процесса прохода по циклу
 from tqdm import tqdm
+# Для работы с науками к которым относится новость
+import subjects
 
 
 def get_row(BOX, topics=None):
@@ -43,47 +45,43 @@ def get_row(BOX, topics=None):
 
     # Достаем название статьи
     name = re.sub(r'^\s|\s{2}|\n', ' ', ''.join(h.xpath('//*[@id="title"]/text()')))
-    # Получаем список тем в рамках которых написана статья.
-    #subject_list = h.xpath('//*[@href="/search"]/text()')
-    #print(subject_list)
-    # Получаем номер тематики на которую написан статься
-    #topic_number = []
-    #if not subject_list:
-    print(1, topics)
-    topic_number = h.xpath('//a/@href')
-    #<a href="/search?search_subject_area=71">Computer Science And Mathematics</a>
-    print(2, topic_number)
-    #topic_number = [sa[1:] for sa in topic_number if 'search_subject_area' in sa]
-    #print(topic_number)
-    topic_number = '&'.join(topic_number).split('&')
-    print(3, topic_number)
-    topic_number = [int(sa[re.search('=', sa).span()[1]:]) for sa in topic_number]
-    print(4, topic_number)
-    # Отрабатывает если не были найдены темы в первый раз.
-    subject_list = [i for i in h.xpath('//a[contains(@href, "subject")]/text()') if
-                    i != '\n'] if subject_list == [] else subject_list
-    print(5, subject_list)
+
+    # Получаем список тем, которые интересны пользователю
+    topics = subjects.get(topics, mode=2)
     # Определяем нужна ли дальнейшая обработка и отсылка новости.
     # Если в функцию не передан список предпочтительных тем пользователя,
     # то отсылается все подряд.
-    # Если же были переданы темы пользователя, то по номеру сверяется с темами на
-    # которые написана статься, к дальнейшей обработке допускаются только статьи,
-    # написанные на любимые темы пользователя.
     if not topics or len(topics) == 0:
         send = True
     else:
-        send = True in [t in topics for t in topic_number] \
-            if len(topic_number) != 0 \
-            else False
+        # Получаем список тем в рамках которых написана статья.
+        subject_list = h.xpath('//a[@href="/search"]/text()')
+        # Если в записи новости нет тем то новость не отправляется пользователю, а в 
+        # терминал выводится сообщение об ошибке.
+        if not subject_list or len(subject_list) == 0:
+            send = False
+            print('ERROR: not found topic in record')
+        # Если же были переданы темы пользователя и в самой записи новости есть темы
+        # на которые написана статья, то по номеру сверяется с темами на
+        # которые написана статья, к дальнейшей обработке допускаются только статьи,
+        # написанные на любимые темы пользователя.
+        else:
+            print(subject_list)
+            send = True in [t in topics for t in subject_list]        
+
     # Получаем список ключевых слов связанных с данной статьей
     keyword_list = h.xpath('//a[contains(@href, "keywords")]/text()')
+
     # Получение краткого описания статьи и заодно отчищаем от лишних пробелов и новых строк
     description = re.sub(r'^\s|\s{2,}|\n]', '', ' '.join(h.xpath('//*[@class="abstract-content"]//text()')))
+
     # Объединяем название, темы, ключевые слова и описание в один текст,
     # чтобы ускорить процесс перевода на русский язык
     NSKD = '\n'.join([name, ';'.join(subject_list), ';'.join(keyword_list), description])
+
     # Переводим и снова возвращаем все к разным элементам как было
     NSKD = translator.translate(text=NSKD).split('\n')
+
     # Записываем все по своим местам
     ROW['Название'] = NSKD[0]
     ROW['Науки'] = [re.sub(r'^\s|\s{2,}|\n]', '', t) for t in NSKD[1].split(';')]
@@ -93,10 +91,13 @@ def get_row(BOX, topics=None):
     # Прописываем уникальный номер статьи чтобы не дублировать записи при новой загрузке
     ROW['Номер'] = re.sub(r'^\s|\s{2,}|\n]', '',
                           ''.join(h.xpath('//span[@class="content-box-header-element-5"]//text()')))
+    
     # Достаем ссылку на статью и записываем в словарь ROW
     ROW['Ссылка'] = main_url + ''.join(h.xpath('//*[@id="title"]/@href'))
+
     # Достаем всех авторов статьи и записываем в словарь ROW
     ROW['Авторы'] = h.xpath('//*[@class="author-selector"]/text()')
+    
     # Получаем дату публикации статьи и из полученной строчки извлекаем только саму дату
     ROW['Дата публикации'] = re.search(r'\d{1,2} [A-Za-z]+ \d{4}',
                                        h.xpath('//*[@class="show-for-large-up"]/*/text()')[0]).group()

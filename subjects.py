@@ -59,12 +59,20 @@ def update():
     topics_df.translate = [translator.translate(text=text) for text in tqdm(topics_df.original)]
 
     topics_df.to_json('topics.json')
-def get(user_topics=None):
+def get(user_topics:list=None, mode:int=1):
     with open('topics.json', 'r') as file:
         subjects_dict = json.load(file)
     df = pd.DataFrame(subjects_dict)
-    if user_topics:
+    if user_topics and mode==1:
         for mid, sid in map(lambda v: v.split('.'), user_topics):
             df.loc[(df.main_id == int(mid)) & (df.sub_id == int(sid)), 'translate'] = '✅' + df.loc[
                 (df.main_id == int(mid)) & (df.sub_id == int(sid)), 'translate']
+    if user_topics and mode==2:
+        return [df.loc[(df.main_id == int(mid)) & (df.sub_id == int(sid)), 'original'].values[0]
+                for mid, sid in map(lambda v: v.split('.'), user_topics)]
+
     return df
+
+# df = get()
+
+# print(df.loc[df['original']=='Environmental Science'])
